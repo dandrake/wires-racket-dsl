@@ -1,0 +1,90 @@
+* basic test circuit
+
+#+begin_src wires
+x AND y -> d
+x OR y -> e
+x LSHIFT 2 -> f
+y RSHIFT 2 -> g
+NOT x -> h
+NOT y -> i
+123 -> x
+456 -> y
+#+end_src
+
+#+RESULTS:
+: d: 72
+: e: 507
+: f: 492
+: g: 114
+: h: 65412
+: i: 65079
+: x: 123
+: y: 456
+
+
+Things can be specified in any order, so the top-to-bottom state
+modification from stacker won't work. We need to delay evaluation until
+we have everything.
+
+Our go-to tool for delaying evaluation: functions!
+
+Idea is: a wire is a function you can call to get its value.
+
+#+begin_src racket
+(define (d) (wires-and (x) (y)))
+;; etc for or, lshift, rshift. And then the unary operator:
+(define (h) (wires-not (x)))
+;; and constants:
+(define (x) 123)
+#+end_src
+
+The operators would do something like:
+
+#+begin_src racket
+(define (wires-and x y)
+  (bitwise-and (x) (y)))
+#+end_src
+
+Then in the above puzzle/circuit, the question of "what's the signal on
+wire d?" is just ~(d)~.
+* holy #*@#$* this macro does, like 80% of the DSL
+:PROPERTIES:
+:CREATED:  [2025-07-15T15:27:29-0500]
+:END:
+
+Holy shit, this macro is about 80% of the way to what I need:
+
+#+begin_src racket
+(define-syntax wires-operator
+                 ;; literal:
+  (syntax-rules (AND OR LSHIFT RSHIFT NOT ->)
+    [(wires-operator lhs AND rhs -> dest)
+     (define (dest) (printf "bitwise AND ~s ~s to ~s" lhs rhs dest))]
+    [(wires-operator NOT lhs -> dest)
+     (define (dest) (printf "bitwise NOT of ~s to ~s" lhs dest))]
+    [(wires-operator input -> dest)
+     (define (dest) (printf "input ~s to ~s" input dest))]
+    ))
+
+#+end_src
+
+#+RESULTS:
+: macrology.rkt> (wires-operator x AND y -> d)
+: ;; no output, it just defined 'd'
+: macrology.rkt> (wires-operator 456 -> y)
+: macrology.rkt> (wires-operator 123 -> x)
+: macrology.rkt> (x)
+: input 123 to #<procedure:x>
+: macrology.rkt> (y)
+: input 456 to #<procedure:y>
+: macrology.rkt> (d)
+: bitwise AND #<procedure:x> #<procedure:y> to #<procedure:d>
+: macrology.rkt> (wires-operator NOT d -> e)
+: macrology.rkt> (e)
+: bitwise NOT of #<procedure:d> to #<procedure:e>
+: macrology.rkt>
+
+Now get the functions to call each other!
+
+* EOF config                                                        :ARCHIVE:
+#  LocalWords:  stacker
