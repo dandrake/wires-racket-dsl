@@ -86,5 +86,54 @@ Holy shit, this macro is about 80% of the way to what I need:
 
 Now get the functions to call each other!
 
+* making =#lang wires= work
+you need a collection? I thought that using raco pkg install did that?
+
+https://docs.racket-lang.org/guide/module-basics.html#(part._link-collection)
+
+okay, I did raco pkg install...
+
+but then it looks like you need to do raco setup. when I do that:
+
+#+begin_quote
+aco setup: --- installing collections ---                         [9:41:11]
+raco setup: --- post-installing collections ---                    [9:41:11]
+raco setup: --- summary of errors ---                              [9:41:11]
+raco setup: error: during making for <pkgs>/wires
+raco setup:   standard-module-name-resolver: collection not found
+raco setup:     for module path: wires/lang/reader
+raco setup:     collection: "wires/lang"
+raco setup:     in collection directories:
+raco setup:      /home/dan/.local/share/racket/8.12/collects
+raco setup:      /usr/share/racket/collects/
+raco setup:      ... [207 additional linked and package directories]
+raco setup:      sub-collection: "lang"
+raco setup:     in parent directories:
+raco setup:      /home/dan/Sync/code/racket/beautiful_racket/wires
+raco setup:     compiling: <pkgs>/wires/wires-test.rkt
+raco setup: error: during making for <pkgs>/wires
+#+end_quote
+
+When I made a lang subdirectory and put my reader code there as
+reader.rkt, and also the expander code, it worked! (Building the
+documentation still shows an error from the original raco stuff it put
+in the scribblings directory, but I don't care about that for now.)
+
+But, you can't run scripts from outside the "wires" directory; it fails
+to find wires-syntax -- I think that's because of the way I'm requiring
+the expander in the reader's output :
+
+#+begin_src racket
+    `(module wires racket/base
+       (require "wires-syntax.rkt")
+       ,@src-datums)
+#+end_src
+
+using
+
+:        (require wires/lang/wires-syntax)
+
+works!
+
 * EOF config                                                        :ARCHIVE:
 #  LocalWords:  stacker

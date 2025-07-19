@@ -1,5 +1,3 @@
-;; wires-reader.rkt
-
 #lang racket/base
 
 (provide
@@ -25,7 +23,7 @@
       (read (operator line))))
   (define module-datum
     `(module wires racket/base
-       (require "wires-syntax.rkt")
+       (require wires/lang/wires-syntax)
        ,@src-datums))
   (datum->syntax
    #false module-datum))

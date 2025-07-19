@@ -1,4 +1,4 @@
-#lang reader "wires-reader.rkt"
+#lang wires
 
 // I am also allowing comments!
 
@@ -12,3 +12,6 @@ NOT y -> i
 456 -> y
 
 SHOW d
+SHOW e
+SHOW f
+SHOW g
