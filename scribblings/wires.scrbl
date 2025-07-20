@@ -3,8 +3,11 @@
                     racket/base]]
 
 @title{wires}
-@author{dan}
+@author{Dan Drake}
 
 @defmodule[wires]
 
-Package Description Here
+A domain-specific language for solving the "wires" programming puzzle.
+
+See @hyperlink["https://beautifulracket.com/wires/intro.html"]{Beautiful
+Racket's tutorial} for this language.

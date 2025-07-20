@@ -86,6 +86,40 @@ Holy shit, this macro is about 80% of the way to what I need:
 
 Now get the functions to call each other!
 
+* ...but the remaining 20% took 90% of the time 🙁
+
+From the working macro, I wanted to get the rest of this working. I
+wanted a script like this to Just Work:
+
+#+begin_src wires
+#lang wires
+
+// comments allowed
+
+x AND y -> d
+x OR y -> e
+123 -> x
+456 -> y
+SHOW d
+SHOW e
+#+end_src
+
+From Beautiful Racket, I know I need a reader, and I wanted to copy the
+stacker example from there and just wrap each line in ~(wires-operator
+LINE)~; that would get passed to an expander that knew about the
+`wires-operator` macro and would, well, expand the macro into plain
+Racket code and run that.
+
+BR provides some syntactic sugar -- its ~#lang br/quicklang~ and such --
+that makes that pretty easy, but I don't want to depend on that, and to
+use plain, base Racket. It turns out that getting all those details
+right is finicky, tedious, boilerplate-y, and poorly documented.
+
+See [[https://racket.discourse.group/t/confused-about-setup-for-reader-and-expander-for-simple-dsl/3859][my Racket discourse thread]].
+
+
+
+
 * making =#lang wires= work
 you need a collection? I thought that using raco pkg install did that?
 
@@ -135,5 +169,6 @@ using
 
 works!
 
+* [[https://github.com/dandrake/wires-racket-dsl][github repo]]
 * EOF config                                                        :ARCHIVE:
 #  LocalWords:  stacker
