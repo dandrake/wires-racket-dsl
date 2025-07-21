@@ -103,3 +103,22 @@
 
 (define (wires-rshift x n)
   (arithmetic-shift (eval-rec x) (- n)))
+
+
+(wires-operator 15 OR bb -> aaa)
+; (wires-operator 123 -> x)
+
+(wires-operator yyyy OR 1 -> x)
+(wires-operator x -> yyyy)
+(wires-operator yyyy -> bb)
+(wires-operator 15 LSHIFT 3 -> z)
+(wires-operator x RSHIFT 2 -> z2)
+
+(define (show-em)
+;;  (wires-operator SHOW aaa)
+;;  (wires-operator SHOW bb)
+  (wires-operator SHOW x)
+;;  (wires-operator SHOW yyyy)
+;;  (wires-operator SHOW z)
+;;  (wires-operator SHOW z2)
+)
