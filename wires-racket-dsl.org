@@ -21,7 +21,6 @@ NOT y -> i
 : x: 123
 : y: 456
 
-
 Things can be specified in any order, so the top-to-bottom state
 modification from stacker won't work. We need to delay evaluation until
 we have everything.
@@ -47,7 +46,7 @@ The operators would do something like:
 
 Then in the above puzzle/circuit, the question of "what's the signal on
 wire d?" is just ~(d)~.
-* holy #*@#$* this macro does, like 80% of the DSL
+* Holy #*@#$* this macro does, like 80% of the DSL
 :PROPERTIES:
 :CREATED:  [2025-07-15T15:27:29-0500]
 :END:
@@ -117,20 +116,17 @@ right is finicky, tedious, boilerplate-y, and poorly documented.
 
 See [[https://racket.discourse.group/t/confused-about-setup-for-reader-and-expander-for-simple-dsl/3859][my Racket discourse thread]].
 
+** making =#lang wires= work
 
-
-
-* making =#lang wires= work
-you need a collection? I thought that using raco pkg install did that?
+You need a collection? I thought that using =raco pkg install= did that?
 
 https://docs.racket-lang.org/guide/module-basics.html#(part._link-collection)
 
-okay, I did raco pkg install...
+Okay, I did =raco pkg install=...but then it looks like you need to do
+=raco setup=. when I do that:
 
-but then it looks like you need to do raco setup. when I do that:
-
-#+begin_quote
-aco setup: --- installing collections ---                         [9:41:11]
+#+begin_verbatim
+raco setup: --- installing collections ---                         [9:41:11]
 raco setup: --- post-installing collections ---                    [9:41:11]
 raco setup: --- summary of errors ---                              [9:41:11]
 raco setup: error: during making for <pkgs>/wires
@@ -146,16 +142,16 @@ raco setup:     in parent directories:
 raco setup:      /home/dan/Sync/code/racket/beautiful_racket/wires
 raco setup:     compiling: <pkgs>/wires/wires-test.rkt
 raco setup: error: during making for <pkgs>/wires
-#+end_quote
+#+end_verbatim
 
-When I made a lang subdirectory and put my reader code there as
-reader.rkt, and also the expander code, it worked! (Building the
+When I made a =lang= subdirectory and put my reader code there as
+=reader.rkt=, and also the expander code, it worked! (Building the
 documentation still shows an error from the original raco stuff it put
-in the scribblings directory, but I don't care about that for now.)
+in the =scribblings= directory, but I don't care about that for now.)
 
-But, you can't run scripts from outside the "wires" directory; it fails
-to find wires-syntax -- I think that's because of the way I'm requiring
-the expander in the reader's output :
+But, you can't run scripts from outside the =wires= directory; it fails
+to find =wires-syntax= -- I think that's because of the way I'm
+requiring the expander in the reader's output:
 
 #+begin_src racket
     `(module wires racket/base
@@ -163,12 +159,58 @@ the expander in the reader's output :
        ,@src-datums)
 #+end_src
 
-using
+but using
 
-:        (require wires/lang/wires-syntax)
+: (require wires/lang/wires-syntax)
 
 works!
 
 * [[https://github.com/dandrake/wires-racket-dsl][github repo]]
+* Then I tried to update code...and it doesn't work?
+
+So, I discovered a bug in my code when using the full puzzle from Advent
+of Code. The inputs to the various operators can be numbers or other
+wires, and I wasn't handling these kinds of situations:
+
+: a -> b
+
+because my code assumes inputs are numbers, and
+
+: a AND 42 -> b
+
+because my code assumed the operands were both wires (functions).
+
+Okay, I can fix that. I started updating my code and made a trivial
+change to start investigating. All I did was a single line to my
+expander code, in one of the helper functions. Just a =printf=. But it
+doesn't seem to be executed...so racket is looking at outdated code?
+It's compiling it, but wires scripts aren't using the updated code.
+
+So I'm flailing with various raco commands.
+
+I try removing the package and reinstalling: =raco pkg remove wires=,
+then =raco pkg install ./wires=; that gave me a bunch of errors because,
+I think, I had fiddled with `main.rkt`. Okay, I fix that and try to
+install again: after a failed installation, I do the same thing, and
+raco says it's already installed!
+
+But I removed the package, and then tried to install it...and failed.
+But somehow raco thinks it succeeded?
+
+And even now, =racket puzzle.rkt= isn't using my updated macro code.
+
+But =raco expand puzzle.rkt= shows what I expect -- it is super
+confusing that =racket= and =raco= don't agree.
+
+Ah, it seems that when you install the package, it compiles all the
+=.rkt= files, and =racket= uses the compiled version even if the source
+file is newer. So it's not working like a Makefile. If I move my script
+elsewhere, =racket= doesn't find a compiled version and uses the updated
+code.
+
+So the lesson is: it's really hard to do ad-hoc testing and dev in the
+package/language directory.
+
+
 * EOF config                                                        :ARCHIVE:
 #  LocalWords:  stacker

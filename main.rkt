@@ -1,1 +1,1 @@
-#lang reader "wires-reader.rkt"
+#lang reader "lang/reader.rkt"
