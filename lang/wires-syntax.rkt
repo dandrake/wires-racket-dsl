@@ -3,7 +3,10 @@
 #lang racket/base
 
 (provide
-  wires-operator)
+ wires-operator
+ dependencies
+ wires-show-graph
+)
 
 (require (for-syntax syntax/parse racket/base))
 
@@ -17,69 +20,53 @@
 
 (define-syntax (wires-operator stx)
   (syntax-parse stx
-    #:datum-literals (AND OR LSHIFT RSHIFT NOT -> // SHOW)
-
+    #:datum-literals (AND OR LSHIFT RSHIFT NOT -> // SHOW GRAPH)
     [(wires-operator lhs:wires-atom AND rhs:wires-atom -> dest:id)
-     #'(define (dest)
-         (wires-and lhs.expand rhs.expand))]
-
+     #'(begin
+         (update-dependencies! 'lhs 'dest)
+         (update-dependencies! 'rhs 'dest)
+         (define (dest)
+           (wires-and lhs.expand rhs.expand)))]
     [(wires-operator lhs:wires-atom OR rhs:wires-atom -> dest:id)
-     #'(define (dest)
-         (wires-or lhs.expand rhs.expand))]
-
+     #'(begin
+         (update-dependencies! 'lhs 'dest)
+         (update-dependencies! 'rhs 'dest)
+         (define (dest)
+           (wires-or lhs.expand rhs.expand )))]
     [(wires-operator lhs:wires-atom LSHIFT n:number -> dest:id)
-     #'(define (dest)
-         (wires-lshift lhs.expand n))]
-
+     #'(begin
+         (update-dependencies! 'lhs 'dest)
+         (define (dest)
+           (wires-lshift lhs.expand n)))]
     [(wires-operator lhs:wires-atom RSHIFT n:number -> dest:id)
-     #'(define (dest)
-         (wires-rshift lhs.expand n))]
-
+     #'(begin
+         (update-dependencies! 'lhs 'dest)
+         (define (dest)
+           (wires-rshift lhs.expand n)))]
     [(wires-operator NOT lhs:wires-atom -> dest:id)
-     #'(define (dest)
-         (wires-not lhs.expand))]
-
+     #'(begin
+         (update-dependencies! 'lhs 'dest)
+         (define (dest)
+           (wires-not lhs.expand)))]
     [(wires-operator input:expr -> dest:id)
-     #'(define (dest) input)]
-
+     #'(begin
+         (update-dependencies! 'input 'dest)
+         (define (dest) input))]
     [(wires-operator SHOW wire)
-     #'(printf "wire ~s = ~s\n" (object-name wire) (eval-rec wire))]
-
+     #'(wires-show wire )]
+    [(wires-operator GRAPH)
+     #'(wires-show-graph)]
     [(wires-operator // comments ...)
      #'(void)]
-
     [(wires-operator)
      #'(void)]))
-
-#;(define-syntax wires-operator
-                 ;; literals:
-  (syntax-rules (AND OR LSHIFT RSHIFT NOT -> // SHOW)
-    [(wires-operator lhs AND rhs -> dest)
-     (define (dest) (wires-and (lhs) (rhs)))]
-    [(wires-operator lhs OR rhs -> dest)
-     (define (dest) (wires-or (lhs) (rhs)))]
-    [(wires-operator lhs LSHIFT n -> dest)
-     (define (dest) (wires-lshift (lhs) n))]
-    [(wires-operator lhs RSHIFT n -> dest)
-     (define (dest) (wires-rshift (lhs) n))]
-    [(wires-operator NOT lhs -> dest)
-     (define (dest) (wires-not (lhs)))]
-    [(wires-operator input -> dest)
-     (define (dest) (input))]
-    [(wires-operator SHOW wire)
-     (printf "wire ~s = ~s\n" (object-name wire) (eval-rec wire)
-             )]
-    [(wires-operator // comments ...)
-     (void)]
-    [(wires-operator)
-     (void)]))
 
 (require racket/set)
 
 ;; recursive evaluate: if it's a number, return that; otherwise, it's
 ;; a function and we ask eval-rec to, well, recursively evaluate the
 ;; function's output.
-(define (eval-rec x [seen (mutable-set)])
+#;(define (eval-rec x [seen (mutable-set)])
   (printf "eval-rec ~s, ~s\n" x seen)
   (if (set-member? seen x)
       (raise-arguments-error 'x "have seen this before")
@@ -88,12 +75,46 @@
         (if (number? x) x (eval-rec (x) seen))
 )))
 
+(define (eval-rec wire)
+  (cond
+    [(number? wire) wire]
+    [else
+     (eprintf "eval-rec ~a\n" (object-name wire))
+     (eval-rec (wire))]))
+
+(require graph racket/list)
+(define dependencies (directed-graph empty))
+;; above we provide this, so you can get it in the REPL. The following
+;; is nice for visualization.
+
+;; QUESTION TODO should the number of bits for lshift and rshift be
+;; considered a numerical signal input?
+
+(define edgelist empty)
+
+#;(define (write-viz g fn)
+  (call-with-output-file fn
+    #:exists 'truncate
+    (lambda (out)
+      (display (graphviz g) out))))
+
+
+
+(define (add-edge-to-dag src dest)
+  (cond
+    [(number? src)
+     (add-directed-edge! dependencies 'numerical-signal dest)]
+    [else
+     (add-directed-edge! dependencies src dest)]))
+
+(define (update-dependencies! src dest)
+  (add-edge-to-dag src dest))
+
 (define (wires-and x y)
   (bitwise-and (eval-rec x) (eval-rec y)))
 
 (define (wires-or x y)
   (bitwise-ior (eval-rec x) (eval-rec y)))
-
 
 (define (wires-not x)
   (bitwise-bit-field (bitwise-not (eval-rec x)) 0 16))
@@ -104,21 +125,9 @@
 (define (wires-rshift x n)
   (arithmetic-shift (eval-rec x) (- n)))
 
+(define (wires-show wire)
 
-(wires-operator 15 OR bb -> aaa)
-; (wires-operator 123 -> x)
+  (printf "wire ~s = ~s\n" (object-name wire) (eval-rec wire)))
 
-(wires-operator yyyy OR 1 -> x)
-(wires-operator x -> yyyy)
-(wires-operator yyyy -> bb)
-(wires-operator 15 LSHIFT 3 -> z)
-(wires-operator x RSHIFT 2 -> z2)
-
-(define (show-em)
-;;  (wires-operator SHOW aaa)
-;;  (wires-operator SHOW bb)
-  (wires-operator SHOW x)
-;;  (wires-operator SHOW yyyy)
-;;  (wires-operator SHOW z)
-;;  (wires-operator SHOW z2)
-)
+(define (wires-show-graph)
+  (printf "deps: ~a\n" (get-edges dependencies)))

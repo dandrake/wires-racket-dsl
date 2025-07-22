@@ -12,7 +12,17 @@ NOT y -> i
 456 -> y
 y -> z
 z AND 42 -> a
+a -> b
+1729 OR b -> cab
 
+// test adding edges before bn defined, order shouldn't matter
+bn RSHIFT 2 -> bnrshift
+bn LSHIFT 2 -> bnlshift
+5 AND bn -> bnand
+5 OR bn -> bnor
+NOT bn -> bnnot
+
+1023 -> bn
 
 SHOW d
 SHOW e
