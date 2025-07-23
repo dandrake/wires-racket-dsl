@@ -3,10 +3,7 @@
 #lang racket/base
 
 (provide
- wires-operator
- dependencies
- wires-show-graph
-)
+ (all-defined-out))
 
 (require (for-syntax syntax/parse racket/base))
 
@@ -66,23 +63,28 @@
 ;; recursive evaluate: if it's a number, return that; otherwise, it's
 ;; a function and we ask eval-rec to, well, recursively evaluate the
 ;; function's output.
-#;(define (eval-rec x [seen (mutable-set)])
-  (printf "eval-rec ~s, ~s\n" x seen)
-  (if (set-member? seen x)
-      (raise-arguments-error 'x "have seen this before")
-      (begin
-        (set-add! seen x)
-        (if (number? x) x (eval-rec (x) seen))
-)))
+
+;; the dependency graph can have multiple paths from a wire to the
+;; ultimate source numerical signals, and with naive recursion you get a
+;; combinatorial explosion with the number of call paths -- so we need
+;; to memoize.
+
+
+(define known-wire-values (make-hash))
 
 (define (eval-rec wire)
+  (define known-value (hash-ref known-wire-values (object-name wire) #f))
   (cond
-    [(number? wire) wire]
+    [known-value
+     known-value]
+    [(number? wire)
+     wire]
     [else
-     (eprintf "eval-rec ~a\n" (object-name wire))
      (eval-rec (wire))]))
 
 (require graph racket/list)
+(provide (all-from-out graph))
+
 (define dependencies (directed-graph empty))
 ;; above we provide this, so you can get it in the REPL. The following
 ;; is nice for visualization.
@@ -90,22 +92,18 @@
 ;; QUESTION TODO should the number of bits for lshift and rshift be
 ;; considered a numerical signal input?
 
-(define edgelist empty)
-
-#;(define (write-viz g fn)
+(define (write-viz [fn "dependencies.dot"])
   (call-with-output-file fn
     #:exists 'truncate
     (lambda (out)
-      (display (graphviz g) out))))
-
-
+      (display (graphviz dependencies) out))))
 
 (define (add-edge-to-dag src dest)
   (cond
     [(number? src)
-     (add-directed-edge! dependencies 'numerical-signal dest)]
+     (add-directed-edge! dependencies dest 'numerical-signal)]
     [else
-     (add-directed-edge! dependencies src dest)]))
+     (add-directed-edge! dependencies dest src)]))
 
 (define (update-dependencies! src dest)
   (add-edge-to-dag src dest))
@@ -126,8 +124,74 @@
   (arithmetic-shift (eval-rec x) (- n)))
 
 (define (wires-show wire)
-
   (printf "wire ~s = ~s\n" (object-name wire) (eval-rec wire)))
 
 (define (wires-show-graph)
   (printf "deps: ~a\n" (get-edges dependencies)))
+
+(require racket/sequence racket/set)
+
+(define known-deps (make-hash))
+
+;; Given a wire w, this outputs a set of all other wires that w depends
+;; on -- those wires whose values can influence w's value.
+;;
+;; This function memoizes very easily using the above known-deps hash
+;; table.
+(define (transitive-dependencies wire)
+  (cond
+    [(hash-has-key? known-deps wire)
+     (eprintf "known-deps ~s\n" wire)
+     (hash-ref known-deps wire)]
+    [else
+     (let ([result (let ([inputs (remove* '(numerical-signal)
+                                          (sequence->list
+                                           (in-neighbors dependencies wire)))])
+                     (cond
+                       [(empty? inputs)
+                        (set)]
+                       [else
+                        (for/fold ([acc (set)])
+                                  ([input (in-list inputs)])
+                          (set-union acc
+                                     (set-union (transitive-dependencies input)
+                                                (set input))))]))])
+       (hash-set! known-deps wire result)
+       result)]))
+
+;; The idea here is to iteratively build up known values for the hash
+;; set, so that as we go along, eval-rec can use the hash table to do
+;; lookups, eliminating the combinatorial explosion in number of paths
+;; to the root.
+;;
+;; This function works, but there's a problem: the bfs returns distances
+;; as the *shortest* path from the root to a node. But there can be
+;; multiple paths from a wire to the numerical-signal root. So you can
+;; have a wire that takes two inputs: a numerical signal (so its
+;; distance is 1) but in the other branch, it may be distance 10 from
+;; the root, with many little cycles along the way. So when eval-rec
+;; sees that on the second iteration, it has to go down the distance-10
+;; branch, and there's nothing in the hash table there yet.
+(define (build-known-values)
+  (define-values (distances _) (bfs (transpose dependencies) 'numerical-signal))
+  (define dists-to-nodes (invert-hash-table distances))
+  (for ([dist (in-naturals 1)]
+        #:do [(define wires (hash-ref dists-to-nodes dist #f))]
+        #:break (not wires))
+    (for-each (lambda (wire)
+                (hash-set! known-wire-values wire (eval-rec (eval wire))))
+              wires)))
+
+;; invert a hash table: the input maps keys to values; the output's keys
+;; are the values from the input, and its values are lists of keys in
+;; the input corresponding to the value.
+(define (invert-hash-table ht)
+  (define values-to-key-list (make-immutable-hash
+                  (for/list ([val (set->list (apply set (hash-values ht)))])
+                    (cons val empty))))
+  (for/fold ([acc values-to-key-list])
+            ([pair (hash->list ht)])
+    (let* ([val (cdr pair)] ;; 'second' only works on lists, this is a pair
+           [key (car pair)] ;; similar
+           [keylist (hash-ref acc val)])
+      (hash-set acc val (cons key keylist)))))

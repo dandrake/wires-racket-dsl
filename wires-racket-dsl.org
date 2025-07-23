@@ -211,6 +211,29 @@ code.
 So the lesson is: it's really hard to do ad-hoc testing and dev in the
 package/language directory.
 
+* Memoizing, hash tables, graphs, BFS, oh my
+
+I suspected that the provided Advent of Code puzzle had some
+dependencies that formed a cycle -- that is, that the dependencies graph
+wasn't a directed acyclic graph (DAG).
+
+I added code to build that, and sadly, it *is* a DAG! See =puzzle.pdf=
+for that huge graph.
+
+The ultimate problem is this: given a wire/node in the dependencies
+graph, there can be multiple paths to the "numerical signal" root, and
+those paths can branch. Each branch (which corresponds to a binary
+operator like =AND= or =OR=) doubles the number of paths to the root,
+and the =eval-rec= function's naive recursion follows all of them and
+takes forever.
+
+What I thought was an infinite loop isn't infinite, it's just big enough
+to take forever or run out of memory.
+
+I have a bunch of nice code here for working with the hash tables, for
+memoizing functions, for doing the graph searches...but the algorithms I
+have, while correct, are easily defeated by puzzles like the provided
+AoC one. See [[https://racket.discourse.group/t/macro-expansion-evaluating-a-pattern-variable-that-could-be-a-number-or-a-function/3862/11?u=ddrake][my post on Racket discourse]] for some more details.
 
 * EOF config                                                        :ARCHIVE:
-#  LocalWords:  stacker
+#  LocalWords:  stacker memoizing AoC
