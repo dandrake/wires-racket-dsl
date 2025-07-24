@@ -1,11 +1,12 @@
 #lang wires
 
-// my copy for testing the infinite loop bug that my code seems to have
-
 // (one instance of) the full puzzle from
 // https://beautifulracket.com/wires/source-listing.html
 // the original puzzle -- https://adventofcode.com/2015/day/7 --
 // asks for the signal on wire a.
+
+// this is my copy which includes some ASSERT statements (my own addition)
+// to verify the values of some of the wires, given by the Beautiful Racket page.
 
 bn RSHIFT 2 -> bo
 lf RSHIFT 1 -> ly
@@ -347,98 +348,25 @@ NOT ac -> ad
 1 AND ht -> hu
 NOT hn -> ho
 
-// SHOW b
-// SHOW v
-// SHOW x
-// SHOW aq
-// SHOW as
-// SHOW bl
-// SHOW bn
-// SHOW cg
-// SHOW ci
-// SHOW db
-// SHOW dd
-// SHOW dw
-SHOW dy
-SHOW er
 
-// this bombs out. why et?
-// SHOW et
+ASSERT bo 10292
+ASSERT ly 4045
+ASSERT fq 6560
+ASSERT cq 15518
+ASSERT ga 60815
+ASSERT u 1
+ASSERT a 46065
+ASSERT ay 65531
+ASSERT hf 15568
+ASSERT lr 8187
+ASSERT lu 7027
+ASSERT ek 15935
+ASSERT cy 0
+ASSERT hv 1438
+ASSERT bi 1
+ASSERT ik 9873
 
-// call stack so to speak for et, for 'es' branch:
+// and finally, the known correct solution to the puzzle:
+ASSERT a 46065
 
-// et from es from eo from en from ek from dy
-
-
-
-
-// SHOW fm
-// SHOW fo
-// SHOW fq
-// SHOW fs
-// SHOW fc
-// SHOW fl
-// SHOW gf
-// SHOW gg
-// SHOW ha
-// SHOW hb
-// SHOW hv
-// SHOW hz
-// SHOW is
-// SHOW iu
-// SHOW jn
-// SHOW jp
-// SHOW ki
-// SHOW kk
-// SHOW ld
-// SHOW lf
-// SHOW lh
-// SHOW jl
-// SHOW jm
-// SHOW kg
-// SHOW kg
-
-
-
-// kg from kg from jm from jl from lh from lf from ld from kk from ki from jp from jn from iu from from is from hz from hv from hb from ha from gg from gf from fl  from fc from fs from fq from fo from fm from et from er from dy from dw from dd from db from ci from cg from bn from bl from as from aq from x from v from b
-
-// kg
-// kg
-// jm
-// jl
-// lh
-// lf
-// ld
-// kk
-// ki
-// jp
-// jn
-// iu
-// is
-// hz
-// hv
-// hb
-// ha
-// gg
-// gf
-// fl
-// fc
-// fs
-// fq
-// fo
-// fm
-// et
-// er
-// dy
-// dw
-// dd
-// db
-// ci
-// cg
-// bn
-// bl
-// as
-// aq
-// x
-// v
-// b
+SHOW a

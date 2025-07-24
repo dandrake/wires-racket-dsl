@@ -234,6 +234,51 @@ I have a bunch of nice code here for working with the hash tables, for
 memoizing functions, for doing the graph searches...but the algorithms I
 have, while correct, are easily defeated by puzzles like the provided
 AoC one. See [[https://racket.discourse.group/t/macro-expansion-evaluating-a-pattern-variable-that-could-be-a-number-or-a-function/3862/11?u=ddrake][my post on Racket discourse]] for some more details.
+** How I got it working
+The puzzle-test branch has my first working implementation. How did I
+get it working?
+
+*** What was wrong without memoization?
+The key to this is eager evaluation. Racket and other Lispy languages
+evaluate the arguments to functions before calling the function. If an
+argument is a function, it calls that function...and that function may
+recursively call other functions, which eagerly evaluate *their*
+arguments, and...
+
+So that explains the combinatorial explosion problem we see when there
+are multiple paths from a wire back to the root (numerical constant
+inputs) in the dependency graph: this naive, eager evaluation takes all
+the possible paths.
+
+For small puzzles, that's not a problem, but the AoC one is big enough
+to defeat that. So we need to cache or memoize results.
+
+*** Why did the first attempts at memoizing fail?
+This is also related to the evaluation model. I was trying to memoize at
+runtime, but the various functions for evaluating the wire signals do
+not, at runtime, have access to the name of the wire. And because of
+eager evaluation, by the time any of those functions see a value, it's
+been evaluated down to a numerical constant.
+
+So we want to control evaluation: we want to *not* evaluate the name of
+the wire, but also to get that value, and use both to populate the
+cache. How do we control evaluation? That's exactly what macros *do*!
+
+So when we handle memoization at macro expansion time, this works: we
+can capture the name of a wire, and then at runtime you can query the
+cache, and if that misses, evaluate the value and put that into the
+cache.
+
+I am reading [[https://www.paulgraham.com/onlisp.html][On Lisp]] right now, and that helped me understand a bit of
+what's going on here. I just needed to have someone hammer it into my
+head that macros offer fine-grained control over exactly when something
+gets evaluated. It's an interesting middle ground between non-macro Lisp
+code (eager evaluation) and other functional languages like Haskell that
+are very serious about lazy evaluation: with macros, you can choose
+exactly how eager or lazy to be, so to speak.
+
+In particular, here, the =with-memoization= helper macro is inspired by
+chapter 11's "with-* macro" section.
 
 * EOF config                                                        :ARCHIVE:
 #  LocalWords:  stacker memoizing AoC
