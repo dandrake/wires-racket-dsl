@@ -210,7 +210,6 @@ code.
 
 So the lesson is: it's really hard to do ad-hoc testing and dev in the
 package/language directory.
-
 * Memoizing, hash tables, graphs, BFS, oh my
 
 I suspected that the provided Advent of Code puzzle had some
@@ -279,6 +278,26 @@ exactly how eager or lazy to be, so to speak.
 
 In particular, here, the =with-memoization= helper macro is inspired by
 chapter 11's "with-* macro" section.
+
+* my improvements on the base language/implementation
+** building a dependency graph
+I was delightfully surprised at how easy it was to add in code that
+builds a directed graph of dependencies. For example, if you have
+
+: x AND y -> z
+
+then the value of =z= depends on the value of =x= and =y=. It was
+useful, as I was trying to debug problems, to have that graph. I've
+added code the builds the graph during parsing and then lets you analyze
+and visualize it.
+** ASSERT command
+As a form of automated testing, you can do =ASSERT x value= to verify
+that the circuit
+** circular dependency check
+My parsing code will detect if the provided program has circular
+dependencies and let the user know. One limitation is that this check is
+done after any SHOW commands, and those will of course get caught in an
+infinite loop for those wires in a cycle.
 
 * EOF config                                                        :ARCHIVE:
 #  LocalWords:  stacker memoizing AoC

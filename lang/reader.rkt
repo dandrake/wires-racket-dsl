@@ -24,6 +24,7 @@
   (define module-datum
     `(module wires racket/base
        (require wires/lang/wires-syntax)
-       ,@src-datums))
+       ,@src-datums
+       (wires-dag?)))
   (datum->syntax
    #false module-datum))
